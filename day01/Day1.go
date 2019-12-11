@@ -25,10 +25,16 @@ func main() {
     scanner := bufio.NewScanner(f)
     for scanner.Scan() {
         mass, _ := strconv.Atoi(scanner.Text())
-        divided := mass / 3
-        rounded := int(divided)
-        substracted := rounded - 2
-        result += substracted
+        for {
+            divided := mass / 3
+            rounded := int(divided)
+            substracted := rounded - 2
+            if (substracted <= 0) {
+                break
+            }
+            result += substracted
+            mass = substracted
+        }
     }
 
     fmt.Println(result)
