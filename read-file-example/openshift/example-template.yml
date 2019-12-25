@@ -1,0 +1,90 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: readfileexample-template
+  annotations:
+    openshift.io/display-name: readfileexample-template
+labels:
+  template: readfileexample-template
+
+objects:
+  - apiVersion: image.openshift.io/v1
+    kind: ImageStream
+    metadata:
+      name: readfile-example
+      labels:
+        app: readfile-example
+
+  - kind: BuildConfig
+    apiVersion: v1
+    metadata:
+      name: readfile-example
+    spec:
+      strategy:
+        sourceStrategy:
+          from:
+            kind: ImageStreamTag
+            name: java:8
+            namespace: openshift
+        type: Source
+      source:
+        type: Binary
+        binary:
+          asFile: readfileexample.jar
+      output:
+        to:
+          kind: ImageStreamTag
+          name: readfile-example:latest
+
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: properties-configmap
+    data:
+      properties.example: welcome bob
+
+  - apiVersion: apps.openshift.io/v1
+    kind: DeploymentConfig
+    metadata:
+      name: readfile-example
+    spec:
+      replicas: 1
+      selector:
+        app: readfile-example
+      strategy:
+        type: Rolling
+      test: false
+      template:
+        metadata:
+          labels:
+            app: readfile-example
+        spec:
+          volumes:
+            - name: properties-volume
+              configMap:
+                name: properties-configmap
+          containers:
+            - volumeMounts:
+                - mountPath: "deployments/config"
+                  name: properties-volume
+              command:
+                - "sh"
+              args:
+                - "-c"
+                - "while true; do echo hello; sleep 18000;done"
+              env:
+                - name: PROPS_LOCATION
+                  value: "config/properties.example"
+              image: " "
+              imagePullPolicy: IfNotPresent
+              name: readfile-example
+      triggers:
+        - imageChangeParams:
+            automatic: true
+            containerNames:
+              - readfile-example
+            from:
+              kind: ImageStreamTag
+              name: readfile-example:latest
+          type: ImageChange
+        - type: ConfigChange
