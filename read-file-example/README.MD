@@ -1,7 +1,7 @@
 # Deploying a properties file next to your jar on OpenShift
 
 I've recently came to the situation where i deployed a spring boot application on openshift and a certain dependency needed a properties file. The
- only problem was that this dependency didn't scan the classpath for the file, but just opened a FileInputStream relative to your current path.
+ only problem was that this dependency didn't scan the classpath for the file, but just opened a FileInputStream relative to the current path.
  
  In this blogpost i will guide you through the process of deploying a text file next to a jar in an openshift container. I've reproduced an
   example scenario, but you can skip these steps and go right to the solution if you want to.
@@ -19,7 +19,6 @@ public class ReadFileExample {
         try (FileInputStream fis = new FileInputStream(propsLocation)) {
             int i = 0;
             do {
-
                 byte[] buf = new byte[1024];
                 i = fis.read(buf);
 
@@ -122,6 +121,7 @@ objects:
             app: readfile-example
         spec:
           containers:
+             // to prevent the container from going idle, we'll run this infinite loop
             - command:
                 - "sh"
               args:
@@ -145,6 +145,11 @@ objects:
 
 In the container spec i've added a shell command to execute to keep the container alive.
 It's a simple infinite loop so that the container doesn't become idle and won't get killed by openshift.
+
+### Starting the Build
+To upload the locally created jar and start the just configured build run this command:
+
+` oc start-build readfile-example --from-dir=./jardir/`
 
 ### Creating and mounting the input file on openshift
 To create and mount an input file we need to add a ConfigMap to our template:
@@ -184,13 +189,18 @@ All we need now is to add an environment variable to our deployment pointing to 
                   value: "config/properties.example"
 ```
 
+### Verifying the deployment
+if all went well your deployment should look like this
+![](deployment-result.png)
 
 ### Running the jar
 In the openshift console go to your deployment and click on the created pod and enter the terminal,
 here you'll find the jar and mounted input file in the `/deployments` dir.
 
-here is the result:
+here is the output result:
 ```
 sh-4.2$ java -jar readfileexample.jar 
 welcome bob
 ```
+
+
