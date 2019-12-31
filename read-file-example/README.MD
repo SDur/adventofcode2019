@@ -1,13 +1,13 @@
 # Deploying a properties file next to your jar on OpenShift
 
-I've recently came to the situation where i deployed a spring boot application on openshift and a certain dependency needed a properties file. The
- only problem was that this dependency didn't scan the classpath for the file, but just opened a FileInputStream relative to the current path.
+I've recently had the situation where I deployed a Spring Boot application on OpenShift where a certain dependency needed a properties file that couldn't be found. The
+ problem was that this dependency didn't scan the classpath for the file, but just opened a FileInputStream relative to the current path.
  
- In this blogpost i will guide you through the process of deploying a text file next to a jar in an openshift container. I've reproduced an
+ In this blogpost I will guide you through the process of deploying a text file next to a jar in an OpenShift container. I've reproduced an
   example scenario, but you can skip these steps and go right to the solution if you want to.
   
   ## The Example Scenario
-  To reproduce the problem just described we need a jar with some java code reading a file located next to the jar. 
+  To reproduce the problem just described we need a jar with some Java code reading a file located next to the jar. 
   
   #### The code:
   
@@ -31,8 +31,8 @@ public class ReadFileExample {
 }
 ```
 
-The code just opens a FileInputStream which location is taken from an environment property. 
-The contents of the file are then printed in the outputstream.
+The code just opens a FileInputStream for which the location is taken from the environment property PROPS_LOCATION. 
+The contents of the file are then printed to the OutputStream.
 
 #### The input file
 I've created a properties.example file containing: `welcome bob`
@@ -42,7 +42,7 @@ If you want to run the code locally you'll need to set the PROPS_LOCATION env va
 `export PROPS_LOCATION=../resources/properties.example`
 
 #### Creating a jar
-First of we need to compile the code:
+First off, we need to compile the code:
 
 `javac ReadFileExample.java -d ../output/`
 
@@ -55,15 +55,15 @@ Main-Class: ReadFileExample
 
 and then to create the jar:
 
-` jar cfm readfileexample.jar MANIFEST.MF *.class`
+`jar cfm readfileexample.jar MANIFEST.MF *.class`
 
-Place the jar in a specific dir, we'll need it when creating the image on openshift.
+Place the jar in a specific dir, we'll need it when creating the image on OpenShift.
 
 ### Creating and deploying an image from the jar
-To create and deploy an image we need to specify to openshift the objects we need.
-We need a BuildConfig, ImageStream and DeploymentConfig
+To create and deploy an image we need to specify the objects we need to OpenShift.
+We need a BuildConfig, ImageStream and a DeploymentConfig.
 
-i've specified the needed objects in yaml format in an openshift template:
+I've specified the needed objects in yaml format in an OpenShift template:
 
 ```
 apiVersion: template.openshift.io/v1
@@ -143,15 +143,15 @@ objects:
 
 ```
 
-In the container spec i've added a shell command to execute to keep the container alive.
+In the container spec I've added a shell command to execute to keep the container alive.
 It's a simple infinite loop so that the container doesn't become idle and won't get killed by openshift.
 
 ### Starting the Build
 To upload the locally created jar and start the just configured build run this command:
 
-` oc start-build readfile-example --from-dir=./jardir/`
+`oc start-build readfile-example --from-dir=./jardir/`
 
-### Creating and mounting the input file on openshift
+### Creating and mounting the input file on OpenShift
 To create and mount an input file we need to add a ConfigMap to our template:
 
 ```
@@ -163,7 +163,7 @@ To create and mount an input file we need to add a ConfigMap to our template:
       properties.example: welcome bob
 ```
 
-And change our deploymentconfig to add a volume with our configmap, and mount this volume add a specific path
+And change our DeploymentConfig to add a volume with our ConfigMap, and mount this volume to a specific path
 
 ```
      template:
@@ -181,7 +181,7 @@ And change our deploymentconfig to add a volume with our configmap, and mount th
                   name: properties-volume
 ```
 
-All we need now is to add an environment variable to our deployment pointing to the mounted file from our configmap
+All we need now is to add an environment variable to our deployment, pointing to the mounted file from our ConfigMap
 
 ```
               env:
@@ -190,17 +190,17 @@ All we need now is to add an environment variable to our deployment pointing to 
 ```
 
 ### Verifying the deployment
-if all went well your deployment should look like this
+If all went well your deployment should look like this
 ![](deployment-result.png)
 
 ### Running the jar
-In the openshift console go to your deployment and click on the created pod and enter the terminal,
+In the OpenShift console go to your deployment and click on the created pod and enter the terminal,
 here you'll find the jar and mounted input file in the `/deployments` dir.
 
-here is the output result:
+Here is the output result:
 ```
 sh-4.2$ java -jar readfileexample.jar 
 welcome bob
 ```
 
-
+Good luck and have fun with your properties files on OpenShift!
